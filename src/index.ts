@@ -1,11 +1,14 @@
 import { config } from './lib/config'
 import { SWQueryResponse, SWQueryFormatted } from './lib/types'
 import axios from 'axios'
+import { logger } from '@vtfk/logger'
 
 // DEBUG
-// const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-response.json') }
+const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-response.json') }
 
 ;(async () => {
+  logger('debug', ['index', 'starting application'])
+
   const swApi = axios.create(config)
 
   const queryNodes = encodeURIComponent(`
@@ -24,7 +27,8 @@ import axios from 'axios'
       ON c.Members.MemberUri = asup.EntityUri
   `)
 
-  const response = await swApi.get<SWQueryResponse>(`/SolarWinds/InformationService/v3/Json/Query?query=${queryNodes}`)
+  logger('debug', ['index', 'getting nodes from Solarwinds'])
+  // const response = await swApi.get<SWQueryResponse>(`/SolarWinds/InformationService/v3/Json/Query?query=${queryNodes}`)
 
   if (typeof response.data.results === 'undefined') {
     throw Error('Query response is missing results property!')
@@ -32,6 +36,7 @@ import axios from 'axios'
 
   const currentDate = new Date()
 
+  logger('debug', ['index', `formatting ${response.data.results.length} nodes`])
   const nodes = response.data.results.map<SWQueryFormatted>(node => {
     function formatDate (date: string | null): Date | null {
       return date !== null ? new Date(date) : null
@@ -66,11 +71,26 @@ import axios from 'axios'
 
     return formattedNode
   })
-  const urisToBeChecked: string[] = []
+
+  logger('debug', ['index', 'filtering duplicate nodes'])
+  const filteredNodes: SWQueryFormatted[] = []
+  nodes.forEach(currentNode => {
+    const existingNodeIndex = filteredNodes.findIndex(existingNode => existingNode.uri === currentNode.uri)
+    if (existingNodeIndex < 0) {
+      filteredNodes.push(currentNode)
+    } else {
+      const existingNode = filteredNodes[existingNodeIndex]
+      if (!existingNode.parentIsSuppressed && currentNode.parentIsSuppressed) {
+        filteredNodes[existingNodeIndex] = currentNode
+      }
+    }
+  })
+  logger('debug', ['index', 'success', `${nodes.length}-${nodes.length - filteredNodes.length} = ${filteredNodes.length} unique nodes`])
+
   const urisToBeMuted: string[] = []
   const urisToBeUnmuted: string[] = []
-  // TODO: Check if **any** parent of node is muted
-  nodes.forEach(node => {
+  // TODO: This should be done in the filtering above (maybe? Or use L114 below..)
+  filteredNodes.forEach(node => {
     if (
       !node.isSuppressed &&
       node.parentIsSuppressed &&
@@ -80,15 +100,15 @@ import axios from 'axios'
     } else if (
       node.isSuppressed &&
       !node.parentIsSuppressed &&
+      // !node.isMutedByScript &&
       !urisToBeMuted.includes(node.uri) &&
-      !urisToBeChecked.includes(node.uri)
+      !urisToBeUnmuted.includes(node.uri)
     ) {
-      urisToBeChecked.push(node.uri)
+      urisToBeUnmuted.push(node.uri)
     }
   })
 
-  // TODO: Check custom property of suppressed nodes
-  urisToBeChecked.forEach(uri => urisToBeUnmuted.push(uri))
+  logger('info', ['index', `muting ${urisToBeMuted.length} nodes`, `unmuting ${urisToBeUnmuted.length} nodes`])
 
   urisToBeMuted.forEach(uri => {
     const node = nodes.find(node => node.uri === uri && node.parentIsSuppressed)
@@ -96,20 +116,14 @@ import axios from 'axios'
       console.log(`Node not found! URI: ${uri}`)
       return
     }
-    const fromDate = node.parentSuppressedFrom?.toISOString() ?? currentDate.toISOString()
-    const untilDate = node.parentSuppressedUntil?.toISOString() ?? null
-    console.log(`Mute node "${uri}" - From: ${fromDate} - Until: ${untilDate ?? 'null'}`)
+    // const fromDate = node.parentSuppressedFrom?.toISOString() ?? currentDate.toISOString()
+    // const untilDate = node.parentSuppressedUntil?.toISOString() ?? null
+    // console.log(`Mute node "${uri}" - From: ${fromDate} - Until: ${untilDate ?? 'null'}`)
   })
-
-  console.log(urisToBeChecked.length)
-  console.log(urisToBeMuted.length)
-  console.log(urisToBeUnmuted.length)
 
   // TODO: Update Custom properties
   // Res: https://github.com/solarwinds/OrionSDK/wiki/REST#bulkupdate-request-custom-properties
-
-  // console.log(nodes.filter(node => node.isSuppressed))
-})().catch(console.error)
+})().catch(error => logger('error', ['index', 'error in application', error.message]))
 
 /* Check if specified column exists
 SELECT TOP 1
