@@ -13,6 +13,14 @@ You can download the template from the [releases page](/releases) under assets.
 ### API Documentation
 [Solarwinds Github Wiki](https://github.com/solarwinds/OrionSDK/wiki/REST)
 
+### Endpoints used
+`{{SW_BASE_URL}}/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/GetAlertSuppressionState`
+
+`{{SW_BASE_URL}}/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/SuppressAlerts`
+
+`{{SW_BASE_URL}}/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/ResumeAlerts`
+
+`{{SW_BASE_URL}}/SolarWinds/InformationService/v3/Json/Query`
 
 ## License
 [MIT](LICENSE)
