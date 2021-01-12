@@ -10,7 +10,7 @@ import { logger } from '@vtfk/logger'
   logger('debug', ['index', 'starting application'])
 
   const swApi = axios.create(config)
-
+  // TODO: Use config.customPropertyName in query
   const queryNodes = encodeURIComponent(`
     SELECT
       c.Name AS "groupName",
@@ -118,36 +118,44 @@ import { logger } from '@vtfk/logger'
   const urisToMute = nodesToMute.map(node => node.uri)
   const urisToUnmute = nodesToUnmute.map(node => node.uri)
 
-  try {
-    await swApi.post('/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/SuppressAlerts', [urisToMute])
+  if (urisToMute.length > 0) {
+    try {
+      await swApi.post('/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/SuppressAlerts', [urisToMute])
 
-    if (config.useCustomProperty) {
-      logger('info', ['index', 'setting custom property', config.customPropertyName, 'for muted nodes to', 'true'])
-      await swApi.post('/SolarWinds/InformationService/v3/Json/BulkUpdate', {
-        uris: nodesToMute.map(node => node.uriCustomProperty),
-        properties: {
-          [config.customPropertyName]: 'true'
-        }
-      })
+      if (config.useCustomProperty) {
+        logger('info', ['index', 'setting custom property', config.customPropertyName, 'for muted nodes to', 'true'])
+        await swApi.post('/SolarWinds/InformationService/v3/Json/BulkUpdate', {
+          uris: nodesToMute.map(node => node.uriCustomProperty),
+          properties: {
+            [config.customPropertyName]: 'true'
+          }
+        })
+      }
+    } catch (error) {
+      logger('error', ['index', 'failed to mute nodes!', 'error', error.message, 'response', error.response.data])
     }
-  } catch (error) {
-    logger('error', ['index', 'failed to mute nodes!', 'error', error.message, 'response', error.response.data])
+  } else {
+    logger('debug', ['index', 'no nodes to mute', 'skipping..'])
   }
 
-  try {
-    await swApi.post('/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/ResumeAlerts', [urisToUnmute])
+  if (urisToUnmute.length > 0) {
+    try {
+      await swApi.post('/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/ResumeAlerts', [urisToUnmute])
 
-    if (config.useCustomProperty) {
-      logger('info', ['index', 'setting custom property', config.customPropertyName, 'for unmuted nodes to', 'false'])
-      await swApi.post('/SolarWinds/InformationService/v3/Json/BulkUpdate', {
-        uris: nodesToUnmute.map(node => node.uriCustomProperty),
-        properties: {
-          [config.customPropertyName]: 'false'
-        }
-      })
+      if (config.useCustomProperty) {
+        logger('info', ['index', 'setting custom property', config.customPropertyName, 'for unmuted nodes to', 'false'])
+        await swApi.post('/SolarWinds/InformationService/v3/Json/BulkUpdate', {
+          uris: nodesToUnmute.map(node => node.uriCustomProperty),
+          properties: {
+            [config.customPropertyName]: 'false'
+          }
+        })
+      }
+    } catch (error) {
+      logger('error', ['index', 'failed to unmute nodes!', 'error', error.message, 'response', error.response.data])
     }
-  } catch (error) {
-    logger('error', ['index', 'failed to unmute nodes!', 'error', error.message, 'response', error.response.data])
+  } else {
+    logger('debug', ['index', 'no nodes to unmute', 'skipping..'])
   }
 })().catch(error => logger('error', ['index', 'error in application', error.message]))
 
