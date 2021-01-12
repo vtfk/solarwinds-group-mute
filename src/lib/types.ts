@@ -16,6 +16,7 @@ export interface SWQueryFormatted {
   parentIsSuppressed: boolean
   uri: string
   isSuppressed: boolean
+  mutedByScript: boolean
   parentSuppressedFrom: Date | null
   parentSuppressedUntil: Date | null
   suppressedFrom: Date | null

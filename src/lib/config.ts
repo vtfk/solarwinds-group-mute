@@ -14,5 +14,7 @@ export const config = {
     username: env('SW_GROUP_MUTER_USERNAME'),
     password: env('SW_GROUP_MUTER_PASSWORD')
   },
-  baseURL: env('SW_BASE_URL')
+  baseURL: env('SW_BASE_URL'),
+  useCustomProperty: env('SW_USE_CUSTOM_PROPERTY', 'false') === 'true',
+  customPropertyName: env('SW_CUSTOM_PROPERTY_NAME', 'MutedByScript')
 }

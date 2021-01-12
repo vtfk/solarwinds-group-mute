@@ -4,7 +4,7 @@ import axios from 'axios'
 import { logger } from '@vtfk/logger'
 
 // DEBUG
-const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-response.json') }
+// const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-response.json') }
 
 ;(async () => {
   logger('debug', ['index', 'starting application'])
@@ -28,7 +28,9 @@ const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-r
   `)
 
   logger('debug', ['index', 'getting nodes from Solarwinds'])
-  // const response = await swApi.get<SWQueryResponse>(`/SolarWinds/InformationService/v3/Json/Query?query=${queryNodes}`)
+  const requestTime = Date.now()
+  const response = await swApi.get<SWQueryResponse>(`/SolarWinds/InformationService/v3/Json/Query?query=${queryNodes}`)
+  logger('debug', ['index', 'Solarwinds query success', `${Date.now() - requestTime}ms`])
 
   if (typeof response.data.results === 'undefined') {
     throw Error('Query response is missing results property!')
@@ -55,6 +57,7 @@ const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-r
       parentIsSuppressed: false,
       uri: node.memberUri,
       isSuppressed: false,
+      mutedByScript: false, // TODO: Get custom property
       parentSuppressedFrom: formatDate(node.groupSuppressedFrom),
       parentSuppressedUntil: formatDate(node.groupSuppressedUntil),
       suppressedFrom: formatDate(node.entitySuppressedFrom),
@@ -87,42 +90,57 @@ const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-r
   })
   logger('debug', ['index', 'success', `${nodes.length}-${nodes.length - filteredNodes.length} = ${filteredNodes.length} unique nodes`])
 
-  const urisToBeMuted: string[] = []
-  const urisToBeUnmuted: string[] = []
-  // TODO: This should be done in the filtering above (maybe? Or use L114 below..)
+  const nodesToMute: SWQueryFormatted[] = []
+  const nodesToUnmute: SWQueryFormatted[] = []
+  const nodesIgnored: SWQueryFormatted[] = []
   filteredNodes.forEach(node => {
-    if (
-      !node.isSuppressed &&
-      node.parentIsSuppressed &&
-      !urisToBeMuted.includes(node.uri)
-    ) {
-      urisToBeMuted.push(node.uri)
-    } else if (
-      node.isSuppressed &&
-      !node.parentIsSuppressed &&
-      // !node.isMutedByScript &&
-      !urisToBeMuted.includes(node.uri) &&
-      !urisToBeUnmuted.includes(node.uri)
-    ) {
-      urisToBeUnmuted.push(node.uri)
-    }
+    if (!node.isSuppressed && node.parentIsSuppressed) nodesToMute.push(node)
+    else if (config.useCustomProperty && !node.mutedByScript) nodesIgnored.push(node)
+    else if (node.isSuppressed && !node.parentIsSuppressed) nodesToUnmute.push(node)
+    else nodesIgnored.push(node)
   })
 
-  logger('info', ['index', `muting ${urisToBeMuted.length} nodes`, `unmuting ${urisToBeUnmuted.length} nodes`])
+  logger('info', [
+    'index',
+    `muting ${nodesToMute.length} nodes`,
+    `unmuting ${nodesToUnmute.length} nodes`,
+    `ignoring ${nodesIgnored.length} nodes`
+  ])
 
-  urisToBeMuted.forEach(uri => {
-    const node = nodes.find(node => node.uri === uri && node.parentIsSuppressed)
-    if (typeof node === 'undefined') {
-      console.log(`Node not found! URI: ${uri}`)
-      return
+  const urisToMute = nodesToMute.map(node => node.uri)
+  const urisToUnmute = nodesToUnmute.map(node => node.uri)
+
+  try {
+    // await swApi.post('/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/SuppressAlerts', [urisToMute])
+
+    if (config.useCustomProperty) {
+      logger('info', ['index', 'setting custom property', config.customPropertyName, 'for muted nodes to', 'true'])
+      // await swApi.post('/SolarWinds/InformationService/v3/Json/BulkUpdate', {
+      //   uris: urisToMute,
+      //   properties: {
+      //     [config.customPropertyName]: 'true'
+      //   }
+      // })
     }
-    // const fromDate = node.parentSuppressedFrom?.toISOString() ?? currentDate.toISOString()
-    // const untilDate = node.parentSuppressedUntil?.toISOString() ?? null
-    // console.log(`Mute node "${uri}" - From: ${fromDate} - Until: ${untilDate ?? 'null'}`)
-  })
+  } catch (error) {
+    logger('error', ['index', 'failed to mute nodes!', 'error', error.message])
+  }
 
-  // TODO: Update Custom properties
-  // Res: https://github.com/solarwinds/OrionSDK/wiki/REST#bulkupdate-request-custom-properties
+  try {
+    // await swApi.post('/SolarWinds/InformationService/v3/Json/Invoke/Orion.AlertSuppression/ResumeAlerts', [urisToUnmute])
+
+    if (config.useCustomProperty) {
+      logger('info', ['index', 'setting custom property', config.customPropertyName, 'for unmuted nodes to', 'false'])
+      // await swApi.post('/SolarWinds/InformationService/v3/Json/BulkUpdate', {
+      //   uris: urisToUnmute,
+      //   properties: {
+      //     [config.customPropertyName]: 'false'
+      //   }
+      // })
+    }
+  } catch (error) {
+    logger('error', ['index', 'failed to unmute nodes!', 'error', error.message])
+  }
 })().catch(error => logger('error', ['index', 'error in application', error.message]))
 
 /* Check if specified column exists
