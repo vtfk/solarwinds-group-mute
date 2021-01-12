@@ -1,8 +1,11 @@
 export interface SWQueryResponse {
   results?: Array<{
     groupName: string
+    displayName: string
     groupUri: string
     memberUri: string
+    memberUriCP: string
+    mutedByScript: boolean
     groupSuppressedFrom: string | null
     groupSuppressedUntil: string | null
     entitySuppressedFrom: string | null
@@ -15,6 +18,7 @@ export interface SWQueryFormatted {
   parentUri: string
   parentIsSuppressed: boolean
   uri: string
+  uriCustomProperty: string
   isSuppressed: boolean
   mutedByScript: boolean
   parentSuppressedFrom: Date | null
