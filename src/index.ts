@@ -62,6 +62,7 @@ import { logger } from '@vtfk/logger'
       parentName: node.groupName,
       parentUri: node.groupUri,
       parentIsSuppressed: false,
+      name: node.displayName,
       uri: node.memberUri,
       uriCustomProperty: node.memberUriCP,
       isSuppressed: false,
@@ -158,13 +159,3 @@ import { logger } from '@vtfk/logger'
     logger('debug', ['index', 'no nodes to unmute', 'skipping..'])
   }
 })().catch(error => logger('error', ['index', 'error in application', error.message]))
-
-/* Check if specified column exists
-SELECT TOP 1
-  Table,
-  Field
-FROM Orion.CustomPropertyValues
-WHERE
-  Table = 'NodesCustomProperties' AND
-  Field = 'Virksomhet'
-*/

@@ -17,6 +17,7 @@ export interface SWQueryFormatted {
   parentName: string
   parentUri: string
   parentIsSuppressed: boolean
+  name: string
   uri: string
   uriCustomProperty: string
   isSuppressed: boolean
