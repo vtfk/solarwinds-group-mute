@@ -5,7 +5,7 @@ export interface SWQueryResponse {
     groupUri: string
     memberUri: string
     memberUriCP: string
-    mutedByScript: boolean
+    mutedByScript?: boolean
     groupSuppressedFrom: string | null
     groupSuppressedUntil: string | null
     entitySuppressedFrom: string | null

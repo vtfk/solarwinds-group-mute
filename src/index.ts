@@ -1,16 +1,13 @@
 import { config } from './lib/config'
 import { SWQueryResponse, SWQueryFormatted } from './lib/types'
-import axios from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import { logger } from '@vtfk/logger'
-
-// DEBUG
-// const response: { data: SWQueryResponse } = { data: require('../sample-data/sw-response.json') }
 
 ;(async () => {
   logger('debug', ['index', 'starting application'])
 
   const swApi = axios.create(config)
-  // TODO: Use config.customPropertyName in query
+
   const queryNodes = encodeURIComponent(`
     SELECT
       c.Name AS "groupName",
@@ -18,7 +15,7 @@ import { logger } from '@vtfk/logger'
       c.Uri AS "groupUri",
       c.Members.MemberUri AS "memberUri",
       cp.uri AS "memberUriCP",
-      cp._Muted_By_Script AS "mutedByScript",
+      ${config.useCustomProperty ? `cp.${config.customPropertyName} AS "mutedByScript",` : ''}
       groupasup.SuppressFrom AS "groupSuppressedFrom",
       groupasup.SuppressUntil AS "groupSuppressedUntil",
       asup.SuppressFrom AS "entitySuppressedFrom",
@@ -34,10 +31,19 @@ import { logger } from '@vtfk/logger'
       ON n.NodeID = cp.NodeID
   `)
 
-  logger('debug', ['index', 'getting nodes from Solarwinds'])
-  const requestTime = Date.now()
-  const response = await swApi.get<SWQueryResponse>(`/SolarWinds/InformationService/v3/Json/Query?query=${queryNodes}`)
-  logger('debug', ['index', 'Solarwinds query success', `${Date.now() - requestTime}ms`])
+  let response: AxiosResponse<SWQueryResponse>
+  try {
+    logger('debug', ['index', 'getting nodes from Solarwinds'])
+    const requestTime = Date.now()
+    response = await swApi.get<SWQueryResponse>(`/SolarWinds/InformationService/v3/Json/Query?query=${queryNodes}`)
+    logger('debug', ['index', 'Solarwinds query success', `${Date.now() - requestTime}ms`])
+  } catch (error) {
+    const responseMessage = error.response?.data?.Message
+    if (typeof responseMessage === 'string' && responseMessage.includes('Entity Orion.NodesCustomProperties does not contain requested property')) {
+      logger('error', ['index', 'failed to get nodes', 'specified custom property does not exist', 'please create it in SW or disable it in this script\'s config'])
+    }
+    throw error
+  }
 
   if (typeof response.data.results === 'undefined') {
     throw Error('Query response is missing results property!')
@@ -66,7 +72,7 @@ import { logger } from '@vtfk/logger'
       uri: node.memberUri,
       uriCustomProperty: node.memberUriCP,
       isSuppressed: false,
-      mutedByScript: node.mutedByScript,
+      mutedByScript: typeof node.mutedByScript === 'boolean' ? node.mutedByScript : false,
       parentSuppressedFrom: formatDate(node.groupSuppressedFrom),
       parentSuppressedUntil: formatDate(node.groupSuppressedUntil),
       suppressedFrom: formatDate(node.entitySuppressedFrom),

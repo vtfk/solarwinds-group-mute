@@ -9,6 +9,12 @@ function env (env: string, defaultValue?: string): string {
   throw Error(`Missing required environment variable "${env}"!`)
 }
 
+function validateCustomProperty (customProperty: string): string {
+  const isValid = /^[-_a-zA-Z0-9]+$/
+  if (isValid.test(customProperty)) return customProperty
+  throw Error(`Invalid custom property name! It has to match regex: /${isValid.source}/`)
+}
+
 export const config = {
   auth: {
     username: env('SW_GROUP_MUTER_USERNAME'),
@@ -16,5 +22,5 @@ export const config = {
   },
   baseURL: env('SW_BASE_URL'),
   useCustomProperty: env('SW_USE_CUSTOM_PROPERTY', 'false') === 'true',
-  customPropertyName: env('SW_CUSTOM_PROPERTY_NAME', 'MutedByScript')
+  customPropertyName: validateCustomProperty(env('SW_CUSTOM_PROPERTY_NAME', '_Muted_By_Script'))
 }
