@@ -2,27 +2,23 @@
 This is a script which automatically mutes entities under all muted groups. Supports having manually muted nodes untouched by using a custom property on a node.
 
 ## Table of contents
-- [Process flow](#Process-flow)
 - [Prerequisites](#Prerequisites)
+- [Download](#Download)
 - [Configuration](#Configuration)
+- [Process flow](#Process-flow)
 - [Development & building](#Development-&-building)
 - [Resources](#Resources)
 - [License](#License)
-
-<!-- TODO: Create Github Action to compile a binary of the script
-## Download
-You can download the binary from the [releases page](/releases) under assets.
--->
-
-## Process flow
-![assets/Solarwinds-mute-groups.png](assets/Solarwinds-mute-groups.png)
-> TODO: Update flow iamge. It's the same result, just a different process to get that result.
 
 ## Prerequisites
 - [X] Somewhere to run this script periodically (cron, Windows task scheduler, etc.)
 - [X] A local Solarwinds account with permissions:
   - [X] `Allow Node Management Rights` set to Yes
   - [X] `Allow Account to Unmanage Objects & Mute Alerts` set to Yes
+
+<!-- TODO: Create Github Action to compile a binary of the script -->
+## Download
+You can download the binary from the [releases page](/releases) under assets.
 
 ## Configuration
 Edit the [template.env](./template.env) file to reflect your environment.
@@ -54,6 +50,10 @@ If you want to make sure this script manages all nodes:
 ### `SW_CUSTOM_PROPERTY_NAME = _Muted_By_Script`
 The custom property name.
 
+## Process flow
+![assets/Solarwinds-mute-groups.png](assets/Solarwinds-mute-groups.png)
+> TODO: Update flow iamge. It's the same result, just a different process to get that result.
+
 ## Development & building
 ```sh
 # Clone and install dependencies
@@ -67,9 +67,14 @@ npm run dev
 # Run tsc
 npm run build
 
-# TODO:
 # Run pkg to build the binaries
-#npm run build:bin
+# This will build a binary for: linux, macos, windows. On your current node version and arch.
+npm run build:bin
+# To build for a specific NodeVer/platform/arch use the --targets option
+# Read more here: https://github.com/vercel/pkg#Targets
+# Examples:
+npm run build:bin -- --targets linux
+npm run build:bin -- --targets node12-linux-x64
 ```
 
 ## Resources
