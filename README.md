@@ -16,7 +16,6 @@ This is a script which automatically mutes entities under all muted groups. Supp
   - [X] `Allow Node Management Rights` set to Yes
   - [X] `Allow Account to Unmanage Objects & Mute Alerts` set to Yes
 
-<!-- TODO: Create Github Action to compile a binary of the script -->
 ## Download
 You can download the binary from the [releases page](/releases) under assets.
 
@@ -51,8 +50,7 @@ If you want to make sure this script manages all nodes:
 The custom property name.
 
 ## Process flow
-![assets/Solarwinds-mute-groups.png](assets/Solarwinds-mute-groups.png)
-> TODO: Update flow iamge. It's the same result, just a different process to get that result.
+![assets/solarwinds-group-muter.png](assets/solarwinds-group-muter.png)
 
 ## Development & building
 ```sh
@@ -66,6 +64,11 @@ npm run dev
 
 # Run tsc
 npm run build
+
+# Publish new version
+npm version {patch,minor,major}
+git push && git push --tag
+# If tests complete and the build is successful; A release will be created with the binary files as assets.
 
 # Run pkg to build the binaries
 # This will build a binary for: linux, macos, windows. On your current node version and arch.
