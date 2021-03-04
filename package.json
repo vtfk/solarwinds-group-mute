@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc",
-    "build:bin": "npm run build && pkg ./package.json",
+    "build:bin": "npm run build && pkg ./ --out-path ./bin/",
     "dev": "ts-node src/",
     "lint": "eslint src/",
     "lint:fix": "eslint --fix src/",
