@@ -1,9 +1,11 @@
 {
   "name": "solarwinds-group-muter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This is a script and APM template for muting Nodes under a group in Solarwinds.",
   "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "bin": {
+    "solarwinds-group-muter": "dist/index.js"
+  },
   "files": [
     "dist/"
   ],
