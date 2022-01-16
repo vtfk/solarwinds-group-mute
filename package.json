@@ -22,7 +22,7 @@
   "author": "Ingar Helgesen (https://github.com/Sherex)",
   "license": "MIT",
   "dependencies": {
-    "@vtfk/logger": "^2.4.0",
+    "@vtfk/logger": "^4.0.1",
     "axios": "^0.21.1",
     "dotenv": "^8.2.0"
   },
